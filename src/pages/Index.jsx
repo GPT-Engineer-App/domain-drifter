@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +26,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { useDomains, useAddDomain, useUpdateDomain, useDeleteDomain } from '@/integrations/supabase';
 
+// Define domain types and associated icons
 const domainTypes = [
   { name: 'Trust', icon: Lock },
   { name: 'Knowledge', icon: Book },
@@ -33,6 +34,7 @@ const domainTypes = [
   { name: 'Exchange', icon: DollarSign },
 ];
 
+// Define default particles for each domain type
 const defaultParticles = {
   Trust: ['Security Protocol', 'Identity Verification', 'Trust Score'],
   Knowledge: ['Learning Path', 'Webinar', 'Information Sharing'],
@@ -131,6 +133,7 @@ const Index = () => {
     }
   };
 
+  // Check loading and error states
   if (isLoading) return <div className="text-center mt-8">Loading domains...</div>;
   if (isError) return <div className="text-center mt-8 text-red-500">Error loading domains</div>;
 
