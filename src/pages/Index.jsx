@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Globe, ChevronDown, Plus, X, Edit, Trash, Lock, Book, Wrench, DollarSign } from "lucide-react";
+import { Globe, ChevronDown, Plus, X, Edit, Trash, Lock, Book, Tool, DollarSign } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -41,108 +41,24 @@ const defaultParticles = {
 };
 
 const Index = () => {
-  const { data: domains, isLoading, isError } = useDomains();
-  const addDomainMutation = useAddDomain();
-  const updateDomainMutation = useUpdateDomain();
-  const deleteDomainMutation = useDeleteDomain();
-
+  const [domains, setDomains] = useState([]);
   const [newDomain, setNewDomain] = useState({ name: '', type: '' });
-  const [perspectives, setPerspectives] = useState(['Default', 'Efficiency', 'Reliability', 'Ease of Use']);
+  const [perspectives, setPerspectives] = useState(['Default']);
   const [selectedPerspective, setSelectedPerspective] = useState('Default');
   const [newPerspective, setNewPerspective] = useState('');
-  const [editingDomain, setEditingDomain] = useState(null);
 
-  const { toast } = useToast();
-
-  // Dummy data for demonstration
-  const dummyDomains = [
-    {
-      id: 'dummy-1',
-      domain_name: 'Example Trust Domain',
-      description: 'A Trust domain',
-      perspectives: {
-        Default: {
-          'Security Protocol': 'Two-factor authentication',
-          'Identity Verification': 'Biometric scan',
-          'Trust Score': '85/100'
-        },
-        Efficiency: {
-          'Security Protocol': 'Quick login process',
-          'Identity Verification': 'Facial recognition',
-          'Trust Score': '90/100'
-        },
-        Reliability: {
-          'Security Protocol': 'Consistent uptime',
-          'Identity Verification': 'Multi-factor authentication',
-          'Trust Score': '95/100'
-        },
-        'Ease of Use': {
-          'Security Protocol': 'Single sign-on',
-          'Identity Verification': 'Passwordless login',
-          'Trust Score': '80/100'
-        }
-      }
-    }
-  ];
-
-  const addDomain = async () => {
+  const addDomain = () => {
     if (newDomain.name.trim() !== '' && newDomain.type !== '') {
-      try {
-        await addDomainMutation.mutateAsync({
-          domain_name: newDomain.name.trim(),
-          description: `A ${newDomain.type} domain`,
-          perspectives: {
-            Default: defaultParticles[newDomain.type].reduce((acc, particle) => {
-              acc[particle] = 'Not configured';
-              return acc;
-            }, {})
-          }
-        });
-        setNewDomain({ name: '', type: '' });
-        toast({
-          title: "Domain added",
-          description: `${newDomain.name} has been added successfully.`,
-        });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to add domain. Please try again.",
-          variant: "destructive",
-        });
-      }
-    }
-  };
-
-  const updateDomain = async (id, updatedDomain) => {
-    try {
-      await updateDomainMutation.mutateAsync({ id, ...updatedDomain });
-      setEditingDomain(null);
-      toast({
-        title: "Domain updated",
-        description: `${updatedDomain.domain_name} has been updated successfully.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update domain. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const deleteDomain = async (id) => {
-    try {
-      await deleteDomainMutation.mutateAsync(id);
-      toast({
-        title: "Domain deleted",
-        description: "The domain has been deleted successfully.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete domain. Please try again.",
-        variant: "destructive",
-      });
+      const newDomainObj = {
+        id: Date.now(),
+        name: newDomain.name.trim(),
+        type: newDomain.type,
+        perspectives: {
+          Default: {}
+        }
+      };
+      setDomains([...domains, newDomainObj]);
+      setNewDomain({ name: '', type: '' });
     }
   };
 
@@ -162,26 +78,14 @@ const Index = () => {
     }
   };
 
-  // Use dummy data if no domains are loaded
-  const displayDomains = domains && domains.length > 0 ? domains : dummyDomains;
-
-  if (isLoading) return <div>Loading domains...</div>;
-  if (isError) return <div>Error loading domains. Displaying example data.</div>;
-
   return (
     <div className="min-h-screen p-8 bg-gray-100">
-      <h1 className="text-4xl font-bold mb-8 text-center">Domain Navigator</h1>
+      <h1 className="text-4xl font-bold mb-8 text-center">Ontological Domain Navigator</h1>
       
       <div className="max-w-4xl mx-auto">
-        {domains && domains.length === 0 && (
-          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-8" role="alert">
-            <p className="font-bold">No domains found</p>
-            <p>The example domain below is for demonstration purposes. Add your own domains using the form above.</p>
-          </div>
-        )}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Add New Domain</CardTitle>
+            <CardTitle>Define New Domain</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex space-x-2">
@@ -204,14 +108,14 @@ const Index = () => {
                   ))}
                 </SelectContent>
               </Select>
-              <Button onClick={addDomain}>Add Domain</Button>
+              <Button onClick={addDomain}>Define Domain</Button>
             </div>
           </CardContent>
         </Card>
 
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Manage Perspectives</CardTitle>
+            <CardTitle>Ontological Perspectives</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex space-x-2 mb-4">
@@ -222,7 +126,7 @@ const Index = () => {
                 onChange={(e) => setNewPerspective(e.target.value)}
                 className="flex-grow"
               />
-              <Button onClick={addPerspective}>Add</Button>
+              <Button onClick={addPerspective}>Add Perspective</Button>
             </div>
             <div className="flex flex-wrap gap-2">
               {perspectives.map((perspective) => (
@@ -259,73 +163,39 @@ const Index = () => {
           </Select>
         </div>
 
-        <Accordion type="single" collapsible className="w-full">
-          {displayDomains.map((domain) => {
-            const DomainIcon = domainTypes.find(type => type.name === domain.description.split(' ')[1])?.icon || Globe;
-            return (
-              <AccordionItem key={domain.id} value={`item-${domain.id}`}>
-                <AccordionTrigger className="hover:no-underline">
-                  <Card className="w-full bg-white hover:shadow-lg transition-shadow">
-                    <CardContent className="flex items-center p-4">
-                      <DomainIcon className="h-6 w-6 mr-2 text-blue-500" />
-                      <span className="text-lg font-medium">{domain.domain_name}</span>
-                      <ChevronDown className="h-4 w-4 ml-auto" />
-                    </CardContent>
-                  </Card>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="p-4 bg-gray-50 rounded-b-lg">
-                    {Object.entries(domain.perspectives[selectedPerspective] || {}).map(([particle, value]) => (
-                      <p key={particle}><strong>{particle}:</strong> {value}</p>
-                    ))}
-                    <div className="mt-4 flex justify-end space-x-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="sm" onClick={() => setEditingDomain(domain)}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Edit Domain: {domain.domain_name}</DialogTitle>
-                          </DialogHeader>
-                          <div className="grid gap-4 py-4">
-                            {Object.entries(domain.perspectives[selectedPerspective] || {}).map(([particle, value]) => (
-                              <div key={particle} className="grid grid-cols-4 items-center gap-4">
-                                <label htmlFor={particle}>{particle}</label>
-                                <Input
-                                  id={particle}
-                                  value={editingDomain?.perspectives[selectedPerspective]?.[particle] || ''}
-                                  onChange={(e) => setEditingDomain({
-                                    ...editingDomain,
-                                    perspectives: {
-                                      ...editingDomain.perspectives,
-                                      [selectedPerspective]: {
-                                        ...editingDomain.perspectives[selectedPerspective],
-                                        [particle]: e.target.value
-                                      }
-                                    }
-                                  })}
-                                  className="col-span-3"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                          <Button onClick={() => updateDomain(domain.id, editingDomain)}>Save Changes</Button>
-                        </DialogContent>
-                      </Dialog>
-                      <Button variant="destructive" size="sm" onClick={() => deleteDomain(domain.id)}>
-                        <Trash className="h-4 w-4 mr-2" />
-                        Delete
-                      </Button>
+        {domains.length === 0 ? (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <p className="text-lg text-gray-600">No domains defined yet. Start by defining a new domain above.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Accordion type="single" collapsible className="w-full">
+            {domains.map((domain) => {
+              const DomainIcon = domainTypes.find(type => type.name === domain.type)?.icon || Globe;
+              return (
+                <AccordionItem key={domain.id} value={`item-${domain.id}`}>
+                  <AccordionTrigger className="hover:no-underline">
+                    <Card className="w-full bg-white hover:shadow-lg transition-shadow">
+                      <CardContent className="flex items-center p-4">
+                        <DomainIcon className="h-6 w-6 mr-2 text-blue-500" />
+                        <span className="text-lg font-medium">{domain.name}</span>
+                        <ChevronDown className="h-4 w-4 ml-auto" />
+                      </CardContent>
+                    </Card>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="p-4 bg-gray-50 rounded-b-lg">
+                      <p><strong>Type:</strong> {domain.type}</p>
+                      <p><strong>Perspective:</strong> {selectedPerspective}</p>
+                      <p className="mt-2 italic">This domain's ontological properties are yet to be defined.</p>
                     </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            );
-          })}
-        </Accordion>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        )}
       </div>
     </div>
   );
