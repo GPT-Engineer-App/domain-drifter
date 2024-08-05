@@ -1,8 +1,8 @@
 import React from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Globe, ChevronDown, Plus, X, Edit, Trash, Lock, Book, Wrench, DollarSign } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Globe, ChevronDown, Plus, X, Edit, Trash, Lock, Book, Wrench, DollarSign, Layers } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -53,6 +53,7 @@ const Index = () => {
   const [newDomain, setNewDomain] = React.useState({ name: '', type: '' });
   const [newPerspective, setNewPerspective] = React.useState('');
   const [selectedPerspective, setSelectedPerspective] = React.useState('Default');
+  const [isAddingDomain, setIsAddingDomain] = React.useState(false);
 
   const addDomain = async () => {
     if (newDomain.name.trim() !== '' && newDomain.type !== '') {
@@ -105,133 +106,160 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen p-8 bg-gray-100">
-      <h1 className="text-4xl font-bold mb-8 text-center">Ontological Domain Navigator</h1>
-      
-      <div className="max-w-4xl mx-auto">
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Define New Domain</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex space-x-2">
-              <Input
-                type="text"
-                placeholder="Enter domain name"
-                value={newDomain.name}
-                onChange={(e) => setNewDomain({ ...newDomain, name: e.target.value })}
-                className="flex-grow"
-              />
-              <Select value={newDomain.type} onValueChange={(value) => setNewDomain({ ...newDomain, type: value })}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {domainTypes.map((type) => (
-                    <SelectItem key={type.name} value={type.name}>
-                      {type.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button onClick={addDomain} disabled={addDomainMutation.isPending}>
-                {addDomainMutation.isPending ? 'Adding...' : 'Define Domain'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Ontological Perspectives</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex space-x-2 mb-4">
-              <Input
-                type="text"
-                placeholder="New perspective name"
-                value={newPerspective}
-                onChange={(e) => setNewPerspective(e.target.value)}
-                className="flex-grow"
-              />
-              <Button onClick={addPerspective} disabled={addPerspectiveMutation.isPending}>
-                {addPerspectiveMutation.isPending ? 'Adding...' : 'Add Perspective'}
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {perspectives?.map((perspective) => (
-                <div key={perspective.perspective_name} className="flex items-center bg-gray-200 rounded-full px-3 py-1">
-                  <span>{perspective.perspective_name}</span>
-                  {perspective.perspective_name !== 'Default' && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="ml-2 p-0"
-                      onClick={() => removePerspective(perspective.perspective_name)}
-                      disabled={deletePerspectiveMutation.isPending}
-                    >
-                      <X className="h-4 w-4" />
+    <div className="min-h-screen p-8 bg-gradient-to-b from-gray-100 to-gray-200">
+      <div className="max-w-6xl mx-auto">
+        <header className="mb-12 text-center">
+          <h1 className="text-5xl font-bold mb-4 text-gray-800">Ontological Domain Navigator</h1>
+          <p className="text-xl text-gray-600">Explore and define domains across multiple perspectives</p>
+        </header>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <Card className="col-span-1 md:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Layers className="mr-2 h-6 w-6" />
+                Domains
+              </CardTitle>
+              <CardDescription>Define and manage your ontological domains</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isAddingDomain ? (
+                <div className="space-y-4">
+                  <Input
+                    type="text"
+                    placeholder="Enter domain name"
+                    value={newDomain.name}
+                    onChange={(e) => setNewDomain({ ...newDomain, name: e.target.value })}
+                  />
+                  <Select value={newDomain.type} onValueChange={(value) => setNewDomain({ ...newDomain, type: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select domain type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {domainTypes.map((type) => (
+                        <SelectItem key={type.name} value={type.name}>
+                          {type.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex space-x-2">
+                    <Button onClick={addDomain} disabled={addDomainMutation.isPending} className="flex-1">
+                      {addDomainMutation.isPending ? 'Adding...' : 'Add Domain'}
                     </Button>
-                  )}
+                    <Button variant="outline" onClick={() => setIsAddingDomain(false)} className="flex-1">
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="mb-4">
-          <Select value={selectedPerspective} onValueChange={setSelectedPerspective}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a perspective" />
-            </SelectTrigger>
-            <SelectContent>
-              {perspectives?.map((perspective) => (
-                <SelectItem key={perspective.perspective_name} value={perspective.perspective_name}>
-                  {perspective.perspective_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {domains?.length === 0 ? (
-          <Card>
-            <CardContent className="p-6 text-center">
-              <p className="text-lg text-gray-600">No domains defined yet. Start by defining a new domain above.</p>
+              ) : (
+                <Button onClick={() => setIsAddingDomain(true)} className="w-full">
+                  <Plus className="mr-2 h-4 w-4" /> Define New Domain
+                </Button>
+              )}
+              
+              {domains?.length === 0 ? (
+                <div className="text-center mt-8 p-6 bg-gray-100 rounded-lg">
+                  <p className="text-lg text-gray-600">No domains defined yet. Start by defining a new domain above.</p>
+                </div>
+              ) : (
+                <Accordion type="single" collapsible className="w-full mt-8">
+                  {domains?.map((domain) => {
+                    const DomainIcon = domainTypes.find(type => type.name === domain.type)?.icon || Globe;
+                    return (
+                      <AccordionItem key={domain.id} value={`item-${domain.id}`}>
+                        <AccordionTrigger className="hover:no-underline">
+                          <div className="flex items-center w-full">
+                            <DomainIcon className="h-6 w-6 mr-2 text-blue-500" />
+                            <span className="text-lg font-medium">{domain.name}</span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="p-4 bg-gray-50 rounded-lg">
+                            <p><strong>Type:</strong> {domain.type}</p>
+                            <p><strong>Perspective:</strong> {selectedPerspective}</p>
+                            <p className="mt-2 font-semibold">Ontological properties:</p>
+                            <ul className="list-disc list-inside pl-4">
+                              {defaultParticles[domain.type]?.map((particle, index) => (
+                                <li key={index}>{particle}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    );
+                  })}
+                </Accordion>
+              )}
             </CardContent>
           </Card>
-        ) : (
-          <Accordion type="single" collapsible className="w-full">
-            {domains?.map((domain) => {
-              const DomainIcon = domainTypes.find(type => type.name === domain.type)?.icon || Globe;
-              return (
-                <AccordionItem key={domain.id} value={`item-${domain.id}`}>
-                  <AccordionTrigger className="hover:no-underline">
-                    <Card className="w-full bg-white hover:shadow-lg transition-shadow">
-                      <CardContent className="flex items-center p-4">
-                        <DomainIcon className="h-6 w-6 mr-2 text-blue-500" />
-                        <span className="text-lg font-medium">{domain.name}</span>
-                        <ChevronDown className="h-4 w-4 ml-auto" />
-                      </CardContent>
-                    </Card>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="p-4 bg-gray-50 rounded-b-lg">
-                      <p><strong>Type:</strong> {domain.type}</p>
-                      <p><strong>Perspective:</strong> {selectedPerspective}</p>
-                      <p className="mt-2 italic">This domain's ontological properties:</p>
-                      <ul className="list-disc list-inside">
-                        {defaultParticles[domain.type]?.map((particle, index) => (
-                          <li key={index}>{particle}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              );
-            })}
-          </Accordion>
-        )}
+
+          <div className="space-y-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Globe className="mr-2 h-6 w-6" />
+                  Perspectives
+                </CardTitle>
+                <CardDescription>Manage ontological perspectives</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex space-x-2">
+                    <Input
+                      type="text"
+                      placeholder="New perspective name"
+                      value={newPerspective}
+                      onChange={(e) => setNewPerspective(e.target.value)}
+                      className="flex-grow"
+                    />
+                    <Button onClick={addPerspective} disabled={addPerspectiveMutation.isPending}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {perspectives?.map((perspective) => (
+                      <div key={perspective.perspective_name} className="flex items-center bg-gray-200 rounded-full px-3 py-1">
+                        <span>{perspective.perspective_name}</span>
+                        {perspective.perspective_name !== 'Default' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="ml-2 p-0"
+                            onClick={() => removePerspective(perspective.perspective_name)}
+                            disabled={deletePerspectiveMutation.isPending}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Active Perspective</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Select value={selectedPerspective} onValueChange={setSelectedPerspective}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a perspective" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {perspectives?.map((perspective) => (
+                      <SelectItem key={perspective.perspective_name} value={perspective.perspective_name}>
+                        {perspective.perspective_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
