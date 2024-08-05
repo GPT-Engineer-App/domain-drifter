@@ -219,8 +219,7 @@ const MainContent = () => {
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
 };
 
 const Index = () => {
