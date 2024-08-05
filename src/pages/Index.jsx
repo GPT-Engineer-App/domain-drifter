@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Globe, ChevronDown, Plus, X, Edit, Trash, Lock, Book, Tool, DollarSign } from "lucide-react";
+import { Globe, ChevronDown, Plus, X, Edit, Trash, Lock, Book, Wrench, DollarSign } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -29,7 +29,7 @@ import { useDomains, useAddDomain, useUpdateDomain, useDeleteDomain } from '@/in
 const domainTypes = [
   { name: 'Trust', icon: Lock },
   { name: 'Knowledge', icon: Book },
-  { name: 'Tools', icon: Tool },
+  { name: 'Tools', icon: Wrench },
   { name: 'Exchange', icon: DollarSign },
 ];
 
