@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Globe, ChevronDown, Plus, X } from "lucide-react";
+import { Globe, ChevronDown, Plus, X, Edit, Trash } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -16,6 +16,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const Index = () => {
   const [domains, setDomains] = useState([]);
@@ -23,6 +30,7 @@ const Index = () => {
   const [perspectives, setPerspectives] = useState(['Default']);
   const [selectedPerspective, setSelectedPerspective] = useState('Default');
   const [newPerspective, setNewPerspective] = useState('');
+  const [editingDomain, setEditingDomain] = useState(null);
 
   const addDomain = () => {
     if (newDomain.trim() !== '') {
@@ -30,14 +38,26 @@ const Index = () => {
         name: newDomain.trim(),
         perspectives: {
           Default: {
-            dns: Math.random() < 0.5 ? 'A' : 'CNAME',
-            ssl: Math.random() < 0.5 ? 'Valid' : 'Expired',
-            status: Math.random() < 0.5 ? 'Active' : 'Inactive'
+            dns: 'A',
+            ssl: 'Valid',
+            status: 'Active'
           }
         }
       }]);
       setNewDomain('');
     }
+  };
+
+  const updateDomain = (index, updatedDomain) => {
+    const newDomains = [...domains];
+    newDomains[index] = updatedDomain;
+    setDomains(newDomains);
+    setEditingDomain(null);
+  };
+
+  const deleteDomain = (index) => {
+    const newDomains = domains.filter((_, i) => i !== index);
+    setDomains(newDomains);
   };
 
   const addPerspective = () => {
@@ -146,6 +166,82 @@ const Index = () => {
                   <p><strong>DNS:</strong> {domain.perspectives[selectedPerspective]?.dns || 'N/A'}</p>
                   <p><strong>SSL:</strong> {domain.perspectives[selectedPerspective]?.ssl || 'N/A'}</p>
                   <p><strong>Status:</strong> {domain.perspectives[selectedPerspective]?.status || 'N/A'}</p>
+                  <div className="mt-4 flex justify-end space-x-2">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" onClick={() => setEditingDomain(domain)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Edit Domain: {domain.name}</DialogTitle>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <label htmlFor="dns">DNS</label>
+                            <Input
+                              id="dns"
+                              value={editingDomain?.perspectives[selectedPerspective]?.dns || ''}
+                              onChange={(e) => setEditingDomain({
+                                ...editingDomain,
+                                perspectives: {
+                                  ...editingDomain.perspectives,
+                                  [selectedPerspective]: {
+                                    ...editingDomain.perspectives[selectedPerspective],
+                                    dns: e.target.value
+                                  }
+                                }
+                              })}
+                              className="col-span-3"
+                            />
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <label htmlFor="ssl">SSL</label>
+                            <Input
+                              id="ssl"
+                              value={editingDomain?.perspectives[selectedPerspective]?.ssl || ''}
+                              onChange={(e) => setEditingDomain({
+                                ...editingDomain,
+                                perspectives: {
+                                  ...editingDomain.perspectives,
+                                  [selectedPerspective]: {
+                                    ...editingDomain.perspectives[selectedPerspective],
+                                    ssl: e.target.value
+                                  }
+                                }
+                              })}
+                              className="col-span-3"
+                            />
+                          </div>
+                          <div className="grid grid-cols-4 items-center gap-4">
+                            <label htmlFor="status">Status</label>
+                            <Input
+                              id="status"
+                              value={editingDomain?.perspectives[selectedPerspective]?.status || ''}
+                              onChange={(e) => setEditingDomain({
+                                ...editingDomain,
+                                perspectives: {
+                                  ...editingDomain.perspectives,
+                                  [selectedPerspective]: {
+                                    ...editingDomain.perspectives[selectedPerspective],
+                                    status: e.target.value
+                                  }
+                                }
+                              })}
+                              className="col-span-3"
+                            />
+                          </div>
+                        </div>
+                        <Button onClick={() => updateDomain(index, editingDomain)}>Save Changes</Button>
+                      </DialogContent>
+                    </Dialog>
+                    <Button variant="destructive" size="sm" onClick={() => deleteDomain(index)}>
+                      <Trash className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </div>
                 </div>
               </AccordionContent>
             </AccordionItem>
