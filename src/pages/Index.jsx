@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +24,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { useDomains, useAddDomain, useUpdateDomain, useDeleteDomain } from '@/integrations/supabase';
+import { useDomains, useAddDomain, useUpdateDomain, useDeleteDomain, usePerspectives, useAddPerspective, useDeletePerspective } from '@/integrations/supabase';
 
 const domainTypes = [
   { name: 'Trust', icon: Lock },
@@ -41,42 +41,68 @@ const defaultParticles = {
 };
 
 const Index = () => {
-  const [domains, setDomains] = useState([]);
-  const [newDomain, setNewDomain] = useState({ name: '', type: '' });
-  const [perspectives, setPerspectives] = useState(['Default']);
-  const [selectedPerspective, setSelectedPerspective] = useState('Default');
-  const [newPerspective, setNewPerspective] = useState('');
+  const { data: domains, isLoading: isLoadingDomains, error: domainsError } = useDomains();
+  const { data: perspectives, isLoading: isLoadingPerspectives, error: perspectivesError } = usePerspectives();
+  const addDomainMutation = useAddDomain();
+  const updateDomainMutation = useUpdateDomain();
+  const deleteDomainMutation = useDeleteDomain();
+  const addPerspectiveMutation = useAddPerspective();
+  const deletePerspectiveMutation = useDeletePerspective();
+  const { toast } = useToast();
 
-  const addDomain = () => {
+  const [newDomain, setNewDomain] = React.useState({ name: '', type: '' });
+  const [newPerspective, setNewPerspective] = React.useState('');
+  const [selectedPerspective, setSelectedPerspective] = React.useState('Default');
+
+  const addDomain = async () => {
     if (newDomain.name.trim() !== '' && newDomain.type !== '') {
-      const newDomainObj = {
-        id: Date.now(),
-        name: newDomain.name.trim(),
-        type: newDomain.type,
-        perspectives: {
-          Default: {}
-        }
-      };
-      setDomains([...domains, newDomainObj]);
-      setNewDomain({ name: '', type: '' });
-    }
-  };
-
-  const addPerspective = () => {
-    if (newPerspective.trim() !== '' && !perspectives.includes(newPerspective.trim())) {
-      setPerspectives([...perspectives, newPerspective.trim()]);
-      setNewPerspective('');
-    }
-  };
-
-  const removePerspective = (perspective) => {
-    if (perspective !== 'Default') {
-      setPerspectives(perspectives.filter(p => p !== perspective));
-      if (selectedPerspective === perspective) {
-        setSelectedPerspective('Default');
+      try {
+        await addDomainMutation.mutateAsync({
+          name: newDomain.name.trim(),
+          type: newDomain.type,
+          perspectives: { Default: {} }
+        });
+        setNewDomain({ name: '', type: '' });
+        toast({ title: "Domain added successfully" });
+      } catch (error) {
+        toast({ title: "Error adding domain", description: error.message, variant: "destructive" });
       }
     }
   };
+
+  const addPerspective = async () => {
+    if (newPerspective.trim() !== '' && !perspectives?.includes(newPerspective.trim())) {
+      try {
+        await addPerspectiveMutation.mutateAsync({ perspective_name: newPerspective.trim() });
+        setNewPerspective('');
+        toast({ title: "Perspective added successfully" });
+      } catch (error) {
+        toast({ title: "Error adding perspective", description: error.message, variant: "destructive" });
+      }
+    }
+  };
+
+  const removePerspective = async (perspective) => {
+    if (perspective !== 'Default') {
+      try {
+        await deletePerspectiveMutation.mutateAsync(perspective);
+        if (selectedPerspective === perspective) {
+          setSelectedPerspective('Default');
+        }
+        toast({ title: "Perspective removed successfully" });
+      } catch (error) {
+        toast({ title: "Error removing perspective", description: error.message, variant: "destructive" });
+      }
+    }
+  };
+
+  if (isLoadingDomains || isLoadingPerspectives) {
+    return <div>Loading...</div>;
+  }
+
+  if (domainsError || perspectivesError) {
+    return <div>Error: {domainsError?.message || perspectivesError?.message}</div>;
+  }
 
   return (
     <div className="min-h-screen p-8 bg-gray-100">
@@ -108,7 +134,9 @@ const Index = () => {
                   ))}
                 </SelectContent>
               </Select>
-              <Button onClick={addDomain}>Define Domain</Button>
+              <Button onClick={addDomain} disabled={addDomainMutation.isPending}>
+                {addDomainMutation.isPending ? 'Adding...' : 'Define Domain'}
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -126,18 +154,21 @@ const Index = () => {
                 onChange={(e) => setNewPerspective(e.target.value)}
                 className="flex-grow"
               />
-              <Button onClick={addPerspective}>Add Perspective</Button>
+              <Button onClick={addPerspective} disabled={addPerspectiveMutation.isPending}>
+                {addPerspectiveMutation.isPending ? 'Adding...' : 'Add Perspective'}
+              </Button>
             </div>
             <div className="flex flex-wrap gap-2">
-              {perspectives.map((perspective) => (
-                <div key={perspective} className="flex items-center bg-gray-200 rounded-full px-3 py-1">
-                  <span>{perspective}</span>
-                  {perspective !== 'Default' && (
+              {perspectives?.map((perspective) => (
+                <div key={perspective.perspective_name} className="flex items-center bg-gray-200 rounded-full px-3 py-1">
+                  <span>{perspective.perspective_name}</span>
+                  {perspective.perspective_name !== 'Default' && (
                     <Button
                       variant="ghost"
                       size="sm"
                       className="ml-2 p-0"
-                      onClick={() => removePerspective(perspective)}
+                      onClick={() => removePerspective(perspective.perspective_name)}
+                      disabled={deletePerspectiveMutation.isPending}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -154,16 +185,16 @@ const Index = () => {
               <SelectValue placeholder="Select a perspective" />
             </SelectTrigger>
             <SelectContent>
-              {perspectives.map((perspective) => (
-                <SelectItem key={perspective} value={perspective}>
-                  {perspective}
+              {perspectives?.map((perspective) => (
+                <SelectItem key={perspective.perspective_name} value={perspective.perspective_name}>
+                  {perspective.perspective_name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
 
-        {domains.length === 0 ? (
+        {domains?.length === 0 ? (
           <Card>
             <CardContent className="p-6 text-center">
               <p className="text-lg text-gray-600">No domains defined yet. Start by defining a new domain above.</p>
@@ -171,7 +202,7 @@ const Index = () => {
           </Card>
         ) : (
           <Accordion type="single" collapsible className="w-full">
-            {domains.map((domain) => {
+            {domains?.map((domain) => {
               const DomainIcon = domainTypes.find(type => type.name === domain.type)?.icon || Globe;
               return (
                 <AccordionItem key={domain.id} value={`item-${domain.id}`}>
@@ -188,7 +219,12 @@ const Index = () => {
                     <div className="p-4 bg-gray-50 rounded-b-lg">
                       <p><strong>Type:</strong> {domain.type}</p>
                       <p><strong>Perspective:</strong> {selectedPerspective}</p>
-                      <p className="mt-2 italic">This domain's ontological properties are yet to be defined.</p>
+                      <p className="mt-2 italic">This domain's ontological properties:</p>
+                      <ul className="list-disc list-inside">
+                        {defaultParticles[domain.type]?.map((particle, index) => (
+                          <li key={index}>{particle}</li>
+                        ))}
+                      </ul>
                     </div>
                   </AccordionContent>
                 </AccordionItem>
