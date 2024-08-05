@@ -218,7 +218,7 @@ const MainContent = () => {
             </Card>
           </div>
         </div>
-      </div>
+      </>
     );
 };
 
