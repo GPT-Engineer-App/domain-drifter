@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Globe, ChevronDown, Plus, X, Edit, Trash, Lock, Book, Wrench, DollarSign } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Accordion,
   AccordionContent,
@@ -56,10 +57,14 @@ const Index = () => {
 
   const { toast } = useToast();
 
+  useEffect(() => {
+    console.log('Domains:', domains);
+  }, [domains]);
+
   const addDomain = async () => {
     if (newDomain.name.trim() !== '' && newDomain.type !== '') {
       try {
-        await addDomainMutation.mutateAsync({
+        const newDomainData = {
           domain_name: newDomain.name.trim(),
           description: `A ${newDomain.type} domain`,
           perspectives: {
@@ -68,13 +73,16 @@ const Index = () => {
               return acc;
             }, {})
           }
-        });
+        };
+        console.log('Adding domain:', newDomainData);
+        await addDomainMutation.mutateAsync(newDomainData);
         setNewDomain({ name: '', type: '' });
         toast({
           title: "Domain added",
           description: `${newDomain.name} has been added successfully.`,
         });
       } catch (error) {
+        console.error('Error adding domain:', error);
         toast({
           title: "Error",
           description: "Failed to add domain. Please try again.",
@@ -140,6 +148,7 @@ const Index = () => {
   return (
     <div className="min-h-screen p-8 bg-gray-100">
       <h1 className="text-4xl font-bold mb-8 text-center">Domain Navigator</h1>
+      {domains && domains.length > 0 ? (
       
       <div className="max-w-4xl mx-auto">
         <Card className="mb-8">
@@ -238,9 +247,13 @@ const Index = () => {
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="p-4 bg-gray-50 rounded-b-lg">
-                    {Object.entries(domain.perspectives[selectedPerspective] || {}).map(([particle, value]) => (
-                      <p key={particle}><strong>{particle}:</strong> {value}</p>
-                    ))}
+                    {domain.perspectives && domain.perspectives[selectedPerspective] ? (
+                      Object.entries(domain.perspectives[selectedPerspective]).map(([particle, value]) => (
+                        <p key={particle}><strong>{particle}:</strong> {value}</p>
+                      ))
+                    ) : (
+                      <p>No data available for the selected perspective.</p>
+                    )}
                     <div className="mt-4 flex justify-end space-x-2">
                       <Dialog>
                         <DialogTrigger asChild>
@@ -254,7 +267,7 @@ const Index = () => {
                             <DialogTitle>Edit Domain: {domain.domain_name}</DialogTitle>
                           </DialogHeader>
                           <div className="grid gap-4 py-4">
-                            {Object.entries(domain.perspectives[selectedPerspective] || {}).map(([particle, value]) => (
+                            {domain.perspectives && domain.perspectives[selectedPerspective] && Object.entries(domain.perspectives[selectedPerspective]).map(([particle, value]) => (
                               <div key={particle} className="grid grid-cols-4 items-center gap-4">
                                 <label htmlFor={particle}>{particle}</label>
                                 <Input
@@ -289,6 +302,9 @@ const Index = () => {
             );
           })}
         </Accordion>
+      ) : (
+        <div className="text-center mt-8">No domains found. Add a new domain to get started.</div>
+      )}
       </div>
     </div>
   );
