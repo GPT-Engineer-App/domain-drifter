@@ -24,7 +24,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useToast } from "@/components/ui/use-toast";
 import { useDomains, useAddDomain, useUpdateDomain, useDeleteDomain } from '@/integrations/supabase';
 
 // Define domain types and associated icons
