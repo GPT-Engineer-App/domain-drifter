@@ -1,7 +1,8 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Globe, ChevronDown, Plus, X, Lock, Book, Wrench, DollarSign, Layers } from "lucide-react";
-import { useSupabaseAuth, SupabaseAuthUI } from '@/integrations/supabase/auth';
+import React, { useState, useEffect } from 'react';
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Globe, ChevronDown, Plus, X, Edit, Trash, Lock, Book, Wrench, DollarSign } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -23,12 +24,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { useDomains, useAddDomain, useUpdateDomain, useDeleteDomain, usePerspectives, useAddPerspective, useDeletePerspective } from '@/integrations/supabase';
+import { useDomains, useAddDomain, useUpdateDomain, useDeleteDomain } from '@/integrations/supabase';
 
 const domainTypes = [
   { name: 'Trust', icon: Lock },
   { name: 'Knowledge', icon: Book },
-  { name: 'Tools', icon: Wrench },
+  { name: 'Tools', icon: Tool },
   { name: 'Exchange', icon: DollarSign },
 ];
 
@@ -39,31 +40,65 @@ const defaultParticles = {
   Exchange: ['Payment Processing', 'Service Listing', 'Reviews'],
 };
 
-const MainContent = () => {
-  const { data: domains, isLoading: isLoadingDomains, error: domainsError } = useDomains();
-  const { data: perspectives, isLoading: isLoadingPerspectives, error: perspectivesError } = usePerspectives();
+const Index = () => {
+  const { data: domains, isLoading, isError } = useDomains();
   const addDomainMutation = useAddDomain();
   const updateDomainMutation = useUpdateDomain();
   const deleteDomainMutation = useDeleteDomain();
-  const addPerspectiveMutation = useAddPerspective();
-  const deletePerspectiveMutation = useDeletePerspective();
+
+  const [newDomain, setNewDomain] = useState({ name: '', type: '' });
+  const [perspectives, setPerspectives] = useState(['Default', 'Efficiency', 'Reliability', 'Ease of Use']);
+  const [selectedPerspective, setSelectedPerspective] = useState('Default');
+  const [newPerspective, setNewPerspective] = useState('');
+  const [editingDomain, setEditingDomain] = useState(null);
+
   const { toast } = useToast();
 
-  const [newDomain, setNewDomain] = React.useState({ name: '', type: '' });
-  const [newPerspective, setNewPerspective] = React.useState('');
-  const [selectedPerspective, setSelectedPerspective] = React.useState('Default');
-  const [isAddingDomain, setIsAddingDomain] = React.useState(false);
+  // Dummy data for demonstration
+  const dummyDomains = [
+    {
+      id: 'dummy-1',
+      domain_name: 'Example Trust Domain',
+      description: 'A Trust domain',
+      perspectives: {
+        Default: {
+          'Security Protocol': 'Two-factor authentication',
+          'Identity Verification': 'Biometric scan',
+          'Trust Score': '85/100'
+        },
+        Efficiency: {
+          'Security Protocol': 'Quick login process',
+          'Identity Verification': 'Facial recognition',
+          'Trust Score': '90/100'
+        },
+        Reliability: {
+          'Security Protocol': 'Consistent uptime',
+          'Identity Verification': 'Multi-factor authentication',
+          'Trust Score': '95/100'
+        },
+        'Ease of Use': {
+          'Security Protocol': 'Single sign-on',
+          'Identity Verification': 'Passwordless login',
+          'Trust Score': '80/100'
+        }
+      }
+    }
+  ];
 
   const addDomain = async () => {
-    if (newDomain.name && newDomain.type) {
+    if (newDomain.name.trim() !== '' && newDomain.type !== '') {
       try {
         await addDomainMutation.mutateAsync({
-          domain_name: newDomain.name,
-          type: newDomain.type,
-          description: `New ${newDomain.type} domain`
+          domain_name: newDomain.name.trim(),
+          description: `A ${newDomain.type} domain`,
+          perspectives: {
+            Default: defaultParticles[newDomain.type].reduce((acc, particle) => {
+              acc[particle] = 'Not configured';
+              return acc;
+            }, {})
+          }
         });
         setNewDomain({ name: '', type: '' });
-        setIsAddingDomain(false);
         toast({
           title: "Domain added",
           description: `${newDomain.name} has been added successfully.`,
@@ -78,232 +113,219 @@ const MainContent = () => {
     }
   };
 
-  const addPerspective = async () => {
-    if (newPerspective) {
-      try {
-        await addPerspectiveMutation.mutateAsync({
-          perspective_name: newPerspective
-        });
-        setNewPerspective('');
-        toast({
-          title: "Perspective added",
-          description: `${newPerspective} has been added successfully.`,
-        });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to add perspective. Please try again.",
-          variant: "destructive",
-        });
-      }
-    }
-  };
-
-  const removePerspective = async (perspectiveName) => {
+  const updateDomain = async (id, updatedDomain) => {
     try {
-      await deletePerspectiveMutation.mutateAsync(perspectiveName);
+      await updateDomainMutation.mutateAsync({ id, ...updatedDomain });
+      setEditingDomain(null);
       toast({
-        title: "Perspective removed",
-        description: `${perspectiveName} has been removed successfully.`,
+        title: "Domain updated",
+        description: `${updatedDomain.domain_name} has been updated successfully.`,
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to remove perspective. Please try again.",
+        description: "Failed to update domain. Please try again.",
         variant: "destructive",
       });
     }
   };
 
-  if (isLoadingDomains || isLoadingPerspectives) {
-    return <div>Loading...</div>;
-  }
+  const deleteDomain = async (id) => {
+    try {
+      await deleteDomainMutation.mutateAsync(id);
+      toast({
+        title: "Domain deleted",
+        description: "The domain has been deleted successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete domain. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
-  if (domainsError || perspectivesError) {
-    return <div>Error: {domainsError?.message || perspectivesError?.message}</div>;
-  }
+  const addPerspective = () => {
+    if (newPerspective.trim() !== '' && !perspectives.includes(newPerspective.trim())) {
+      setPerspectives([...perspectives, newPerspective.trim()]);
+      setNewPerspective('');
+    }
+  };
+
+  const removePerspective = (perspective) => {
+    if (perspective !== 'Default') {
+      setPerspectives(perspectives.filter(p => p !== perspective));
+      if (selectedPerspective === perspective) {
+        setSelectedPerspective('Default');
+      }
+    }
+  };
+
+  // Use dummy data if no domains are loaded
+  const displayDomains = domains && domains.length > 0 ? domains : dummyDomains;
+
+  if (isLoading) return <div>Loading domains...</div>;
+  if (isError) return <div>Error loading domains. Displaying example data.</div>;
 
   return (
-    <>
-      <header className="mb-12 text-center">
-        <h1 className="text-5xl font-bold mb-4 text-gray-800">Ontological Domain Navigator</h1>
-        <p className="text-xl text-gray-600">Explore and define domains across multiple perspectives</p>
-      </header>
+    <div className="min-h-screen p-8 bg-gray-100">
+      <h1 className="text-4xl font-bold mb-8 text-center">Domain Navigator</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <Card className="col-span-1 md:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Layers className="mr-2 h-6 w-6" />
-                Domains
-              </CardTitle>
-              <CardDescription>Define and manage your ontological domains</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isAddingDomain ? (
-                <div className="space-y-4">
-                  <Input
-                    type="text"
-                    placeholder="Enter domain name"
-                    value={newDomain.name}
-                    onChange={(e) => setNewDomain({ ...newDomain, name: e.target.value })}
-                  />
-                  <Select value={newDomain.type} onValueChange={(value) => setNewDomain({ ...newDomain, type: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select domain type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {domainTypes.map((type) => (
-                        <SelectItem key={type.name} value={type.name}>
-                          {type.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <div className="flex space-x-2">
-                    <Button onClick={addDomain} disabled={addDomainMutation.isPending} className="flex-1">
-                      {addDomainMutation.isPending ? 'Adding...' : 'Add Domain'}
-                    </Button>
-                    <Button variant="outline" onClick={() => setIsAddingDomain(false)} className="flex-1">
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <Button onClick={() => setIsAddingDomain(true)} className="w-full">
-                  <Plus className="mr-2 h-4 w-4" /> Define New Domain
-                </Button>
-              )}
-              
-              {domains?.length === 0 ? (
-                <div className="text-center mt-8 p-6 bg-gray-100 rounded-lg">
-                  <p className="text-lg text-gray-600">No domains defined yet. Start by defining a new domain above.</p>
-                </div>
-              ) : (
-                <Accordion type="single" collapsible className="w-full mt-8">
-                  {domains?.map((domain) => {
-                    const DomainIcon = domainTypes.find(type => type.name === domain.type)?.icon || Globe;
-                    return (
-                      <AccordionItem key={domain.id} value={`item-${domain.id}`}>
-                        <AccordionTrigger className="hover:no-underline">
-                          <div className="flex items-center w-full">
-                            <DomainIcon className="h-6 w-6 mr-2 text-blue-500" />
-                            <span className="text-lg font-medium">{domain.name}</span>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <div className="p-4 bg-gray-50 rounded-lg">
-                            <p><strong>Type:</strong> {domain.type}</p>
-                            <p><strong>Perspective:</strong> {selectedPerspective}</p>
-                            <p className="mt-2 font-semibold">Ontological properties:</p>
-                            <ul className="list-disc list-inside pl-4">
-                              {defaultParticles[domain.type]?.map((particle, index) => (
-                                <li key={index}>{particle}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    );
-                  })}
-                </Accordion>
-              )}
-            </CardContent>
-          </Card>
-
-          <div className="space-y-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Globe className="mr-2 h-6 w-6" />
-                  Perspectives
-                </CardTitle>
-                <CardDescription>Manage ontological perspectives</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex space-x-2">
-                    <Input
-                      type="text"
-                      placeholder="New perspective name"
-                      value={newPerspective}
-                      onChange={(e) => setNewPerspective(e.target.value)}
-                      className="flex-grow"
-                    />
-                    <Button onClick={addPerspective} disabled={addPerspectiveMutation.isPending}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {perspectives?.map((perspective) => (
-                      <div key={perspective.perspective_name} className="flex items-center bg-gray-200 rounded-full px-3 py-1">
-                        <span>{perspective.perspective_name}</span>
-                        {perspective.perspective_name !== 'Default' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="ml-2 p-0"
-                            onClick={() => removePerspective(perspective.perspective_name)}
-                            disabled={deletePerspectiveMutation.isPending}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Active Perspective</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Select value={selectedPerspective} onValueChange={setSelectedPerspective}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a perspective" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {perspectives?.map((perspective) => (
-                      <SelectItem key={perspective.perspective_name} value={perspective.perspective_name}>
-                        {perspective.perspective_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </CardContent>
-            </Card>
+      <div className="max-w-4xl mx-auto">
+        {domains && domains.length === 0 && (
+          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-8" role="alert">
+            <p className="font-bold">No domains found</p>
+            <p>The example domain below is for demonstration purposes. Add your own domains using the form above.</p>
           </div>
-        </div>
-      </>
-    );
-};
-
-const Index = () => {
-  const { session, loading } = useSupabaseAuth();
-
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  }
-
-  return (
-    <div className="min-h-screen p-8 bg-gradient-to-b from-gray-100 to-gray-200">
-      <div className="max-w-6xl mx-auto">
-        {session ? (
-          <MainContent />
-        ) : (
-          <Card className="w-full max-w-md mx-auto mt-20">
-            <CardHeader>
-              <CardTitle>Log in to Ontological Domain Navigator</CardTitle>
-              <CardDescription>Enter your credentials to access the application</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <SupabaseAuthUI />
-            </CardContent>
-          </Card>
         )}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Add New Domain</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex space-x-2">
+              <Input
+                type="text"
+                placeholder="Enter domain name"
+                value={newDomain.name}
+                onChange={(e) => setNewDomain({ ...newDomain, name: e.target.value })}
+                className="flex-grow"
+              />
+              <Select value={newDomain.type} onValueChange={(value) => setNewDomain({ ...newDomain, type: value })}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {domainTypes.map((type) => (
+                    <SelectItem key={type.name} value={type.name}>
+                      {type.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={addDomain}>Add Domain</Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Manage Perspectives</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex space-x-2 mb-4">
+              <Input
+                type="text"
+                placeholder="New perspective name"
+                value={newPerspective}
+                onChange={(e) => setNewPerspective(e.target.value)}
+                className="flex-grow"
+              />
+              <Button onClick={addPerspective}>Add</Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {perspectives.map((perspective) => (
+                <div key={perspective} className="flex items-center bg-gray-200 rounded-full px-3 py-1">
+                  <span>{perspective}</span>
+                  {perspective !== 'Default' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-2 p-0"
+                      onClick={() => removePerspective(perspective)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="mb-4">
+          <Select value={selectedPerspective} onValueChange={setSelectedPerspective}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a perspective" />
+            </SelectTrigger>
+            <SelectContent>
+              {perspectives.map((perspective) => (
+                <SelectItem key={perspective} value={perspective}>
+                  {perspective}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Accordion type="single" collapsible className="w-full">
+          {displayDomains.map((domain) => {
+            const DomainIcon = domainTypes.find(type => type.name === domain.description.split(' ')[1])?.icon || Globe;
+            return (
+              <AccordionItem key={domain.id} value={`item-${domain.id}`}>
+                <AccordionTrigger className="hover:no-underline">
+                  <Card className="w-full bg-white hover:shadow-lg transition-shadow">
+                    <CardContent className="flex items-center p-4">
+                      <DomainIcon className="h-6 w-6 mr-2 text-blue-500" />
+                      <span className="text-lg font-medium">{domain.domain_name}</span>
+                      <ChevronDown className="h-4 w-4 ml-auto" />
+                    </CardContent>
+                  </Card>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="p-4 bg-gray-50 rounded-b-lg">
+                    {Object.entries(domain.perspectives[selectedPerspective] || {}).map(([particle, value]) => (
+                      <p key={particle}><strong>{particle}:</strong> {value}</p>
+                    ))}
+                    <div className="mt-4 flex justify-end space-x-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm" onClick={() => setEditingDomain(domain)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Edit Domain: {domain.domain_name}</DialogTitle>
+                          </DialogHeader>
+                          <div className="grid gap-4 py-4">
+                            {Object.entries(domain.perspectives[selectedPerspective] || {}).map(([particle, value]) => (
+                              <div key={particle} className="grid grid-cols-4 items-center gap-4">
+                                <label htmlFor={particle}>{particle}</label>
+                                <Input
+                                  id={particle}
+                                  value={editingDomain?.perspectives[selectedPerspective]?.[particle] || ''}
+                                  onChange={(e) => setEditingDomain({
+                                    ...editingDomain,
+                                    perspectives: {
+                                      ...editingDomain.perspectives,
+                                      [selectedPerspective]: {
+                                        ...editingDomain.perspectives[selectedPerspective],
+                                        [particle]: e.target.value
+                                      }
+                                    }
+                                  })}
+                                  className="col-span-3"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                          <Button onClick={() => updateDomain(domain.id, editingDomain)}>Save Changes</Button>
+                        </DialogContent>
+                      </Dialog>
+                      <Button variant="destructive" size="sm" onClick={() => deleteDomain(domain.id)}>
+                        <Trash className="h-4 w-4 mr-2" />
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
       </div>
     </div>
   );
