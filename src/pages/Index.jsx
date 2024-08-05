@@ -28,6 +28,18 @@ const Index = () => {
     }
   };
 
+  // Ensure existing domains have particles
+  React.useEffect(() => {
+    setDomains(prevDomains => prevDomains.map(domain => ({
+      ...domain,
+      particles: domain.particles || {
+        dns: 'N/A',
+        ssl: 'N/A',
+        status: 'N/A'
+      }
+    })));
+  }, []);
+
   return (
     <div className="min-h-screen p-8 bg-gray-100">
       <h1 className="text-4xl font-bold mb-8 text-center">Domain Navigator</h1>
@@ -65,9 +77,9 @@ const Index = () => {
               </AccordionTrigger>
               <AccordionContent>
                 <div className="p-4 bg-gray-50 rounded-b-lg">
-                  <p><strong>DNS:</strong> {domain.particles.dns}</p>
-                  <p><strong>SSL:</strong> {domain.particles.ssl}</p>
-                  <p><strong>Status:</strong> {domain.particles.status}</p>
+                  <p><strong>DNS:</strong> {domain.particles?.dns || 'N/A'}</p>
+                  <p><strong>SSL:</strong> {domain.particles?.ssl || 'N/A'}</p>
+                  <p><strong>Status:</strong> {domain.particles?.status || 'N/A'}</p>
                 </div>
               </AccordionContent>
             </AccordionItem>
