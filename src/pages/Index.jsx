@@ -2,7 +2,13 @@ import React, { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Globe } from "lucide-react";
+import { Globe, ChevronDown } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const Index = () => {
   const [domains, setDomains] = useState([]);
@@ -10,7 +16,14 @@ const Index = () => {
 
   const addDomain = () => {
     if (newDomain.trim() !== '') {
-      setDomains([...domains, newDomain.trim()]);
+      setDomains([...domains, {
+        name: newDomain.trim(),
+        particles: {
+          dns: Math.random() < 0.5 ? 'A' : 'CNAME',
+          ssl: Math.random() < 0.5 ? 'Valid' : 'Expired',
+          status: Math.random() < 0.5 ? 'Active' : 'Inactive'
+        }
+      }]);
       setNewDomain('');
     }
   };
@@ -38,16 +51,28 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Accordion type="single" collapsible className="w-full">
           {domains.map((domain, index) => (
-            <Card key={index} className="bg-white hover:shadow-lg transition-shadow">
-              <CardContent className="flex items-center p-4">
-                <Globe className="h-6 w-6 mr-2 text-blue-500" />
-                <span className="text-lg font-medium">{domain}</span>
-              </CardContent>
-            </Card>
+            <AccordionItem key={index} value={`item-${index}`}>
+              <AccordionTrigger className="hover:no-underline">
+                <Card className="w-full bg-white hover:shadow-lg transition-shadow">
+                  <CardContent className="flex items-center p-4">
+                    <Globe className="h-6 w-6 mr-2 text-blue-500" />
+                    <span className="text-lg font-medium">{domain.name}</span>
+                    <ChevronDown className="h-4 w-4 ml-auto" />
+                  </CardContent>
+                </Card>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="p-4 bg-gray-50 rounded-b-lg">
+                  <p><strong>DNS:</strong> {domain.particles.dns}</p>
+                  <p><strong>SSL:</strong> {domain.particles.ssl}</p>
+                  <p><strong>Status:</strong> {domain.particles.status}</p>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
           ))}
-        </div>
+        </Accordion>
       </div>
     </div>
   );
