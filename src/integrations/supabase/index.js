@@ -11,6 +11,35 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
   }
 });
 
+// Insert sample data
+const insertSampleData = async () => {
+  // Sample domains
+  const { data: domains, error: domainsError } = await supabase
+    .from('domains')
+    .upsert([
+      { id: '1', domain_name: 'Trust', description: 'Security and identity management' },
+      { id: '2', domain_name: 'Knowledge', description: 'Learning and information sharing' },
+      { id: '3', domain_name: 'Tools', description: 'Task and resource management' },
+      { id: '4', domain_name: 'Exchange', description: 'Payment and service transactions' },
+    ], { onConflict: 'id' });
+
+  if (domainsError) console.error('Error inserting domains:', domainsError);
+
+  // Sample perspectives
+  const { data: perspectives, error: perspectivesError } = await supabase
+    .from('perspectives')
+    .upsert([
+      { id: 1, perspective_name: 'Default' },
+      { id: 2, perspective_name: 'Efficiency' },
+      { id: 3, perspective_name: 'Reliability' },
+      { id: 4, perspective_name: 'Ease of Use' },
+    ], { onConflict: 'id' });
+
+  if (perspectivesError) console.error('Error inserting perspectives:', perspectivesError);
+};
+
+insertSampleData();
+
 import React from "react";
 export const queryClient = new QueryClient();
 export function SupabaseProvider({ children }) {

@@ -54,7 +54,66 @@ const MainContent = () => {
   const [selectedPerspective, setSelectedPerspective] = React.useState('Default');
   const [isAddingDomain, setIsAddingDomain] = React.useState(false);
 
-  // ... (keep the existing functions like addDomain, addPerspective, removePerspective)
+  const addDomain = async () => {
+    if (newDomain.name && newDomain.type) {
+      try {
+        await addDomainMutation.mutateAsync({
+          domain_name: newDomain.name,
+          type: newDomain.type,
+          description: `New ${newDomain.type} domain`
+        });
+        setNewDomain({ name: '', type: '' });
+        setIsAddingDomain(false);
+        toast({
+          title: "Domain added",
+          description: `${newDomain.name} has been added successfully.`,
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to add domain. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const addPerspective = async () => {
+    if (newPerspective) {
+      try {
+        await addPerspectiveMutation.mutateAsync({
+          perspective_name: newPerspective
+        });
+        setNewPerspective('');
+        toast({
+          title: "Perspective added",
+          description: `${newPerspective} has been added successfully.`,
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to add perspective. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const removePerspective = async (perspectiveName) => {
+    try {
+      await deletePerspectiveMutation.mutateAsync(perspectiveName);
+      toast({
+        title: "Perspective removed",
+        description: `${perspectiveName} has been removed successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to remove perspective. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (isLoadingDomains || isLoadingPerspectives) {
     return <div>Loading...</div>;
