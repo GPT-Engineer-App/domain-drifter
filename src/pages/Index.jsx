@@ -54,37 +54,6 @@ const Index = () => {
 
   const { toast } = useToast();
 
-  // Dummy data for demonstration
-  const dummyDomains = [
-    {
-      id: 'dummy-1',
-      domain_name: 'Example Trust Domain',
-      description: 'A Trust domain',
-      perspectives: {
-        Default: {
-          'Security Protocol': 'Two-factor authentication',
-          'Identity Verification': 'Biometric scan',
-          'Trust Score': '85/100'
-        },
-        Efficiency: {
-          'Security Protocol': 'Quick login process',
-          'Identity Verification': 'Facial recognition',
-          'Trust Score': '90/100'
-        },
-        Reliability: {
-          'Security Protocol': 'Consistent uptime',
-          'Identity Verification': 'Multi-factor authentication',
-          'Trust Score': '95/100'
-        },
-        'Ease of Use': {
-          'Security Protocol': 'Single sign-on',
-          'Identity Verification': 'Passwordless login',
-          'Trust Score': '80/100'
-        }
-      }
-    }
-  ];
-
   const addDomain = async () => {
     if (newDomain.name.trim() !== '' && newDomain.type !== '') {
       try {
@@ -162,23 +131,14 @@ const Index = () => {
     }
   };
 
-  // Use dummy data if no domains are loaded
-  const displayDomains = domains && domains.length > 0 ? domains : dummyDomains;
-
   if (isLoading) return <div>Loading domains...</div>;
-  if (isError) return <div>Error loading domains. Displaying example data.</div>;
+  if (isError) return <div>Error loading domains</div>;
 
   return (
     <div className="min-h-screen p-8 bg-gray-100">
       <h1 className="text-4xl font-bold mb-8 text-center">Domain Navigator</h1>
       
       <div className="max-w-4xl mx-auto">
-        {domains && domains.length === 0 && (
-          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-8" role="alert">
-            <p className="font-bold">No domains found</p>
-            <p>The example domain below is for demonstration purposes. Add your own domains using the form above.</p>
-          </div>
-        )}
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>Add New Domain</CardTitle>
@@ -260,7 +220,7 @@ const Index = () => {
         </div>
 
         <Accordion type="single" collapsible className="w-full">
-          {displayDomains.map((domain) => {
+          {domains.map((domain) => {
             const DomainIcon = domainTypes.find(type => type.name === domain.description.split(' ')[1])?.icon || Globe;
             return (
               <AccordionItem key={domain.id} value={`item-${domain.id}`}>
