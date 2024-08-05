@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Globe, ChevronDown, Plus, X, Edit, Trash } from "lucide-react";
+import { Globe, ChevronDown, Plus, X, Edit, Trash, Lock, Book, Tool, DollarSign } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -23,41 +23,96 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/use-toast";
+import { useDomains, useAddDomain, useUpdateDomain, useDeleteDomain } from '@/integrations/supabase';
+
+const domainTypes = [
+  { name: 'Trust', icon: Lock },
+  { name: 'Knowledge', icon: Book },
+  { name: 'Tools', icon: Tool },
+  { name: 'Exchange', icon: DollarSign },
+];
+
+const defaultParticles = {
+  Trust: ['Security Protocol', 'Identity Verification', 'Trust Score'],
+  Knowledge: ['Learning Path', 'Webinar', 'Information Sharing'],
+  Tools: ['Task Management', 'Timeline', 'Resource Allocation'],
+  Exchange: ['Payment Processing', 'Service Listing', 'Reviews'],
+};
 
 const Index = () => {
-  const [domains, setDomains] = useState([]);
-  const [newDomain, setNewDomain] = useState('');
-  const [perspectives, setPerspectives] = useState(['Default']);
+  const { data: domains, isLoading, isError } = useDomains();
+  const addDomainMutation = useAddDomain();
+  const updateDomainMutation = useUpdateDomain();
+  const deleteDomainMutation = useDeleteDomain();
+
+  const [newDomain, setNewDomain] = useState({ name: '', type: '' });
+  const [perspectives, setPerspectives] = useState(['Default', 'Efficiency', 'Reliability', 'Ease of Use']);
   const [selectedPerspective, setSelectedPerspective] = useState('Default');
   const [newPerspective, setNewPerspective] = useState('');
   const [editingDomain, setEditingDomain] = useState(null);
 
-  const addDomain = () => {
-    if (newDomain.trim() !== '') {
-      setDomains([...domains, {
-        name: newDomain.trim(),
-        perspectives: {
-          Default: {
-            dns: 'A',
-            ssl: 'Valid',
-            status: 'Active'
+  const { toast } = useToast();
+
+  const addDomain = async () => {
+    if (newDomain.name.trim() !== '' && newDomain.type !== '') {
+      try {
+        await addDomainMutation.mutateAsync({
+          domain_name: newDomain.name.trim(),
+          description: `A ${newDomain.type} domain`,
+          perspectives: {
+            Default: defaultParticles[newDomain.type].reduce((acc, particle) => {
+              acc[particle] = 'Not configured';
+              return acc;
+            }, {})
           }
-        }
-      }]);
-      setNewDomain('');
+        });
+        setNewDomain({ name: '', type: '' });
+        toast({
+          title: "Domain added",
+          description: `${newDomain.name} has been added successfully.`,
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to add domain. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
-  const updateDomain = (index, updatedDomain) => {
-    const newDomains = [...domains];
-    newDomains[index] = updatedDomain;
-    setDomains(newDomains);
-    setEditingDomain(null);
+  const updateDomain = async (id, updatedDomain) => {
+    try {
+      await updateDomainMutation.mutateAsync({ id, ...updatedDomain });
+      setEditingDomain(null);
+      toast({
+        title: "Domain updated",
+        description: `${updatedDomain.domain_name} has been updated successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update domain. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const deleteDomain = (index) => {
-    const newDomains = domains.filter((_, i) => i !== index);
-    setDomains(newDomains);
+  const deleteDomain = async (id) => {
+    try {
+      await deleteDomainMutation.mutateAsync(id);
+      toast({
+        title: "Domain deleted",
+        description: "The domain has been deleted successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete domain. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const addPerspective = () => {
@@ -76,11 +131,14 @@ const Index = () => {
     }
   };
 
+  if (isLoading) return <div>Loading domains...</div>;
+  if (isError) return <div>Error loading domains</div>;
+
   return (
     <div className="min-h-screen p-8 bg-gray-100">
       <h1 className="text-4xl font-bold mb-8 text-center">Domain Navigator</h1>
       
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>Add New Domain</CardTitle>
@@ -90,10 +148,22 @@ const Index = () => {
               <Input
                 type="text"
                 placeholder="Enter domain name"
-                value={newDomain}
-                onChange={(e) => setNewDomain(e.target.value)}
+                value={newDomain.name}
+                onChange={(e) => setNewDomain({ ...newDomain, name: e.target.value })}
                 className="flex-grow"
               />
+              <Select value={newDomain.type} onValueChange={(value) => setNewDomain({ ...newDomain, type: value })}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {domainTypes.map((type) => (
+                    <SelectItem key={type.name} value={type.name}>
+                      {type.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button onClick={addDomain}>Add Domain</Button>
             </div>
           </CardContent>
@@ -150,102 +220,71 @@ const Index = () => {
         </div>
 
         <Accordion type="single" collapsible className="w-full">
-          {domains.map((domain, index) => (
-            <AccordionItem key={index} value={`item-${index}`}>
-              <AccordionTrigger className="hover:no-underline">
-                <Card className="w-full bg-white hover:shadow-lg transition-shadow">
-                  <CardContent className="flex items-center p-4">
-                    <Globe className="h-6 w-6 mr-2 text-blue-500" />
-                    <span className="text-lg font-medium">{domain.name}</span>
-                    <ChevronDown className="h-4 w-4 ml-auto" />
-                  </CardContent>
-                </Card>
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="p-4 bg-gray-50 rounded-b-lg">
-                  <p><strong>DNS:</strong> {domain.perspectives[selectedPerspective]?.dns || 'N/A'}</p>
-                  <p><strong>SSL:</strong> {domain.perspectives[selectedPerspective]?.ssl || 'N/A'}</p>
-                  <p><strong>Status:</strong> {domain.perspectives[selectedPerspective]?.status || 'N/A'}</p>
-                  <div className="mt-4 flex justify-end space-x-2">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" onClick={() => setEditingDomain(domain)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Edit Domain: {domain.name}</DialogTitle>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <label htmlFor="dns">DNS</label>
-                            <Input
-                              id="dns"
-                              value={editingDomain?.perspectives[selectedPerspective]?.dns || ''}
-                              onChange={(e) => setEditingDomain({
-                                ...editingDomain,
-                                perspectives: {
-                                  ...editingDomain.perspectives,
-                                  [selectedPerspective]: {
-                                    ...editingDomain.perspectives[selectedPerspective],
-                                    dns: e.target.value
-                                  }
-                                }
-                              })}
-                              className="col-span-3"
-                            />
+          {domains.map((domain) => {
+            const DomainIcon = domainTypes.find(type => type.name === domain.description.split(' ')[1])?.icon || Globe;
+            return (
+              <AccordionItem key={domain.id} value={`item-${domain.id}`}>
+                <AccordionTrigger className="hover:no-underline">
+                  <Card className="w-full bg-white hover:shadow-lg transition-shadow">
+                    <CardContent className="flex items-center p-4">
+                      <DomainIcon className="h-6 w-6 mr-2 text-blue-500" />
+                      <span className="text-lg font-medium">{domain.domain_name}</span>
+                      <ChevronDown className="h-4 w-4 ml-auto" />
+                    </CardContent>
+                  </Card>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="p-4 bg-gray-50 rounded-b-lg">
+                    {Object.entries(domain.perspectives[selectedPerspective] || {}).map(([particle, value]) => (
+                      <p key={particle}><strong>{particle}:</strong> {value}</p>
+                    ))}
+                    <div className="mt-4 flex justify-end space-x-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm" onClick={() => setEditingDomain(domain)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Edit Domain: {domain.domain_name}</DialogTitle>
+                          </DialogHeader>
+                          <div className="grid gap-4 py-4">
+                            {Object.entries(domain.perspectives[selectedPerspective] || {}).map(([particle, value]) => (
+                              <div key={particle} className="grid grid-cols-4 items-center gap-4">
+                                <label htmlFor={particle}>{particle}</label>
+                                <Input
+                                  id={particle}
+                                  value={editingDomain?.perspectives[selectedPerspective]?.[particle] || ''}
+                                  onChange={(e) => setEditingDomain({
+                                    ...editingDomain,
+                                    perspectives: {
+                                      ...editingDomain.perspectives,
+                                      [selectedPerspective]: {
+                                        ...editingDomain.perspectives[selectedPerspective],
+                                        [particle]: e.target.value
+                                      }
+                                    }
+                                  })}
+                                  className="col-span-3"
+                                />
+                              </div>
+                            ))}
                           </div>
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <label htmlFor="ssl">SSL</label>
-                            <Input
-                              id="ssl"
-                              value={editingDomain?.perspectives[selectedPerspective]?.ssl || ''}
-                              onChange={(e) => setEditingDomain({
-                                ...editingDomain,
-                                perspectives: {
-                                  ...editingDomain.perspectives,
-                                  [selectedPerspective]: {
-                                    ...editingDomain.perspectives[selectedPerspective],
-                                    ssl: e.target.value
-                                  }
-                                }
-                              })}
-                              className="col-span-3"
-                            />
-                          </div>
-                          <div className="grid grid-cols-4 items-center gap-4">
-                            <label htmlFor="status">Status</label>
-                            <Input
-                              id="status"
-                              value={editingDomain?.perspectives[selectedPerspective]?.status || ''}
-                              onChange={(e) => setEditingDomain({
-                                ...editingDomain,
-                                perspectives: {
-                                  ...editingDomain.perspectives,
-                                  [selectedPerspective]: {
-                                    ...editingDomain.perspectives[selectedPerspective],
-                                    status: e.target.value
-                                  }
-                                }
-                              })}
-                              className="col-span-3"
-                            />
-                          </div>
-                        </div>
-                        <Button onClick={() => updateDomain(index, editingDomain)}>Save Changes</Button>
-                      </DialogContent>
-                    </Dialog>
-                    <Button variant="destructive" size="sm" onClick={() => deleteDomain(index)}>
-                      <Trash className="h-4 w-4 mr-2" />
-                      Delete
-                    </Button>
+                          <Button onClick={() => updateDomain(domain.id, editingDomain)}>Save Changes</Button>
+                        </DialogContent>
+                      </Dialog>
+                      <Button variant="destructive" size="sm" onClick={() => deleteDomain(domain.id)}>
+                        <Trash className="h-4 w-4 mr-2" />
+                        Delete
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
         </Accordion>
       </div>
     </div>
