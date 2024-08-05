@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Globe, ChevronDown, Plus, X, Edit, Trash, Lock, Book, Tool, DollarSign } from "lucide-react";
+import { Globe, ChevronDown, Plus, X, Edit, Trash, Lock, Book, Wrench, DollarSign } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -29,7 +29,7 @@ import { useDomains, useAddDomain, useUpdateDomain, useDeleteDomain } from '@/in
 const domainTypes = [
   { name: 'Trust', icon: Lock },
   { name: 'Knowledge', icon: Book },
-  { name: 'Tools', icon: Tool },
+  { name: 'Tools', icon: Wrench },
   { name: 'Exchange', icon: DollarSign },
 ];
 
@@ -131,8 +131,8 @@ const Index = () => {
     }
   };
 
-  if (isLoading) return <div>Loading domains...</div>;
-  if (isError) return <div>Error loading domains</div>;
+  if (isLoading) return <div className="text-center mt-8">Loading domains...</div>;
+  if (isError) return <div className="text-center mt-8 text-red-500">Error loading domains</div>;
 
   return (
     <div className="min-h-screen p-8 bg-gray-100">
